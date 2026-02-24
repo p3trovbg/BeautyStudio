@@ -1,0 +1,11 @@
+.env
+*.user
+*.suo
+.vs/
+bin/
+obj/
+node_modules/
+dist/
+logs/
+*.log
+postgres_data/

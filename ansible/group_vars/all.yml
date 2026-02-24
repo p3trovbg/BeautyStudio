@@ -1,0 +1,17 @@
+---
+# ── Server ────────────────────────────────────────────────
+server_ip: "YOUR_SERVER_IP"
+deploy_user: deploy
+app_user: appuser
+app_dir: /opt/appointment-system
+domain: appointments.example.com
+
+# ── Docker ────────────────────────────────────────────────
+docker_version: "5:25.0*"
+
+# ── Application ──────────────────────────────────────────
+git_repo: "https://github.com/your-org/appointment-system.git"
+git_branch: main
+
+# ── Timezone ──────────────────────────────────────────────
+timezone: "UTC"

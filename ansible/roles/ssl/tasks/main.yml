@@ -1,0 +1,24 @@
+---
+- name: Install Certbot
+  become: true
+  ansible.builtin.apt:
+    name:
+      - certbot
+      - python3-certbot-nginx
+    state: present
+
+- name: Obtain Let's Encrypt certificate
+  become: true
+  ansible.builtin.shell: |
+    certbot --nginx -d {{ domain }} --non-interactive --agree-tos -m admin@{{ domain }}
+  args:
+    creates: "/etc/letsencrypt/live/{{ domain }}/fullchain.pem"
+
+- name: Set up auto-renewal timer
+  become: true
+  ansible.builtin.cron:
+    name: "certbot renewal"
+    minute: "30"
+    hour: "2"
+    job: "/usr/bin/certbot renew --quiet"
+    user: root

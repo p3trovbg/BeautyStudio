@@ -1,0 +1,10 @@
+---
+- name: Provision & Deploy Appointment System
+  hosts: all
+  become: false
+  roles:
+    - common
+    - docker
+    - app_user
+    - deploy
+    - ssl

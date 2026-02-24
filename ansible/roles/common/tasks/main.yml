@@ -1,0 +1,56 @@
+---
+- name: Update apt cache
+  become: true
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install essential utilities
+  become: true
+  ansible.builtin.apt:
+    name:
+      - curl
+      - git
+      - ufw
+      - gnupg
+      - ca-certificates
+      - apt-transport-https
+      - software-properties-common
+    state: present
+
+- name: Set timezone
+  become: true
+  ansible.builtin.timezone:
+    name: "{{ timezone }}"
+
+- name: Configure UFW defaults
+  become: true
+  community.general.ufw:
+    direction: incoming
+    default: deny
+
+- name: Allow SSH
+  become: true
+  community.general.ufw:
+    rule: allow
+    port: "22"
+    proto: tcp
+
+- name: Allow HTTP
+  become: true
+  community.general.ufw:
+    rule: allow
+    port: "80"
+    proto: tcp
+
+- name: Allow HTTPS
+  become: true
+  community.general.ufw:
+    rule: allow
+    port: "443"
+    proto: tcp
+
+- name: Enable UFW
+  become: true
+  community.general.ufw:
+    state: enabled

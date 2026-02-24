@@ -1,0 +1,25 @@
+---
+- name: Create deploy user
+  become: true
+  ansible.builtin.user:
+    name: "{{ app_user }}"
+    shell: /bin/bash
+    create_home: true
+    groups: docker
+    append: true
+
+- name: Add authorized SSH key for deploy user
+  become: true
+  ansible.posix.authorized_key:
+    user: "{{ app_user }}"
+    key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+    state: present
+
+- name: Create application directory
+  become: true
+  ansible.builtin.file:
+    path: "{{ app_dir }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0755"

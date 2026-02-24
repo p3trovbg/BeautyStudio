@@ -1,0 +1,25 @@
+---
+- name: Clone/update application repository
+  become: true
+  become_user: "{{ app_user }}"
+  ansible.builtin.git:
+    repo: "{{ git_repo }}"
+    dest: "{{ app_dir }}"
+    version: "{{ git_branch }}"
+    force: true
+
+- name: Copy .env file
+  become: true
+  become_user: "{{ app_user }}"
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ app_dir }}/.env"
+    mode: "0600"
+
+- name: Build and start containers
+  become: true
+  become_user: "{{ app_user }}"
+  ansible.builtin.shell: |
+    docker compose up -d --build --remove-orphans
+  args:
+    chdir: "{{ app_dir }}"

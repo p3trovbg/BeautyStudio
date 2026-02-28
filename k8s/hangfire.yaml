@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hangfire
+  namespace: appointment-system
+  labels:
+    app: hangfire
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hangfire
+  template:
+    metadata:
+      labels:
+        app: hangfire
+    spec:
+      containers:
+        - name: hangfire
+          image: appointment-api:latest # Shares the same image as the API
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: appointment-config
+                  key: ASPNETCORE_ENVIRONMENT
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: appointment-config
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: appointment-config
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: appointment-secrets
+                  key: POSTGRES_PASSWORD
+            - name: ConnectionStrings__DefaultConnection
+              value: "Host=postgres;Port=5432;Database=$(POSTGRES_DB);Username=$(POSTGRES_USER);Password=$(POSTGRES_PASSWORD)"
+            - name: Email__SmtpHost
+              valueFrom:
+                configMapKeyRef:
+                  name: appointment-config
+                  key: SMTP_HOST
+            - name: Email__SmtpPort
+              valueFrom:
+                configMapKeyRef:
+                  name: appointment-config
+                  key: SMTP_PORT
+            - name: Email__SmtpUser
+              valueFrom:
+                secretKeyRef:
+                  name: appointment-secrets
+                  key: SMTP_USER
+            - name: Email__SmtpPassword
+              valueFrom:
+                secretKeyRef:
+                  name: appointment-secrets
+                  key: SMTP_PASSWORD
+            - name: Email__FromAddress
+              valueFrom:
+                configMapKeyRef:
+                  name: appointment-config
+                  key: EMAIL_FROM
+          # Hangfire worker doesn't need to expose ports or have http healthchecks typical to API

@@ -1,0 +1,145 @@
+name: Terraform
+
+on:
+  # Run plan on every PR that touches infrastructure files
+  pull_request:
+    paths:
+      - "terraform/**"
+      - "k8s/**"
+
+  # Allow manually triggering apply from the GitHub Actions UI
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Action to perform"
+        required: true
+        default: "apply"
+        type: choice
+        options:
+          - apply
+          - destroy
+
+env:
+  TF_WORKING_DIR: ./terraform
+  TF_CLOUD_ORGANIZATION: your-org       # ← match backend.tf
+  TF_WORKSPACE: beauty-studio           # ← match backend.tf
+
+jobs:
+  # ─────────────────────────────────────────────
+  # JOB 1: Plan — runs automatically on every PR
+  # ─────────────────────────────────────────────
+  plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    permissions:
+      pull-requests: write   # needed to post PR comments
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.0"
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
+      - name: Write kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Terraform Format Check
+        id: fmt
+        run: terraform fmt -check -recursive
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        continue-on-error: true   # report but don't block
+
+      - name: Terraform Init
+        id: init
+        run: terraform init
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate -no-color
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -no-color -out=tfplan
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        continue-on-error: true   # let the comment job always run
+
+      # Post the plan output as a sticky comment on the PR
+      - name: Post Plan to PR
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: terraform-plan
+          message: |
+            ## Terraform Plan 🔍
+
+            | Step | Result |
+            |------|--------|
+            | Format | ${{ steps.fmt.outcome == 'success' && '✅ passed' || '⚠️ issues found' }} |
+            | Init   | ${{ steps.init.outcome == 'success' && '✅ passed' || '❌ failed' }} |
+            | Validate | ${{ steps.validate.outcome == 'success' && '✅ passed' || '❌ failed' }} |
+            | Plan   | ${{ steps.plan.outcome == 'success' && '✅ succeeded' || '❌ failed' }} |
+
+            <details><summary>Show Plan Output</summary>
+
+            ```
+            ${{ steps.plan.outputs.stdout }}
+            ```
+
+            </details>
+
+            > Merge this PR to trigger a manual apply from the **Actions** tab.
+
+      - name: Fail if plan errored
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+
+  # ──────────────────────────────────────────────────────────────
+  # JOB 2: Apply — only runs when YOU click "Run workflow" manually
+  # ──────────────────────────────────────────────────────────────
+  apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+
+    environment:
+      name: production   # creates a GitHub Environment with optional approval gate
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.0"
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
+      - name: Write kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+      - name: Terraform Apply
+        if: github.event.inputs.action == 'apply'
+        run: terraform apply -auto-approve -no-color
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+      - name: Terraform Destroy
+        if: github.event.inputs.action == 'destroy'
+        run: terraform destroy -auto-approve -no-color
+        working-directory: ${{ env.TF_WORKING_DIR }}

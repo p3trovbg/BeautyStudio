@@ -154,13 +154,66 @@ dotnet ef database update \
 | GET/POST/PUT/DELETE | `/api/customers` | Customer CRUD |
 | GET | `/health` | Health check |
 
+## Terraform Pipeline (GitHub Actions)
+
+Infrastructure is managed by Terraform and deployed via GitHub Actions. The workflow lives in `.github/workflows/terraform.yml`.
+
+### How it works
+
+| Event | What happens |
+|-------|-------------|
+| Open / update a **Pull Request** | `terraform plan` runs automatically and posts the output as a PR comment |
+| Click **"Run workflow"** in the Actions tab | `terraform apply` (or `destroy`) runs — you choose the action in a dropdown |
+
+> **Nothing applies automatically on merge.** You always click the button intentionally.
+
+### One-time Setup
+
+#### 1. Terraform Cloud (free)
+
+1. Sign up at [app.terraform.io](https://app.terraform.io)
+2. Create an organization — set the name in `terraform/backend.tf` and in the `env:` block of `terraform.yml` (replace `"your-org"`)
+3. Create a workspace called **`beauty-studio`** → set **Execution Mode** to **Local** (the CI runner executes Terraform, not Terraform Cloud)
+4. Generate an API token: **User Settings → Tokens → Create API token**
+
+#### 2. GitHub Secrets
+
+Go to **Settings → Secrets and variables → Actions** in your GitHub repo and add:
+
+| Secret name | Value |
+|-------------|-------|
+| `TF_API_TOKEN` | The Terraform Cloud API token from step 1 |
+| `KUBECONFIG` | The full contents of your `~/.kube/config` file |
+
+#### 3. GitHub Environment (optional but recommended)
+
+Create a **`production`** environment in **Settings → Environments**. You can add required reviewers there so that even the manual apply needs someone to approve before it runs.
+
+### Triggering Apply
+
+1. Go to **Actions** tab → **Terraform** workflow
+2. Click **"Run workflow"** (top-right)
+3. Choose branch (`main`) and action (`apply`)
+4. Click **"Run workflow"**
+
+### Running Locally
+
+```bash
+cd terraform
+terraform init
+terraform plan
+terraform apply
+```
+
+---
+
 ## Tech Stack
 
 **Backend:** ASP.NET Core 8 · EF Core 8 · PostgreSQL 16 · Hangfire · MailKit · Serilog · FluentValidation · AutoMapper
 
 **Frontend:** React 18 · TypeScript · Vite · TanStack Query v5 · Zustand · React Hook Form + Zod · React Big Calendar · Tailwind CSS · Sonner
 
-**DevOps:** Docker Compose · Nginx · Ansible · Let's Encrypt
+**DevOps:** Docker Compose · Nginx · Ansible · Let's Encrypt · Terraform · GitHub Actions
 
 ## License
 

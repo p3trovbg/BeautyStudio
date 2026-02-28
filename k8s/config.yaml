@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: appointment-config
+  namespace: appointment-system
+data:
+  # Database Configuration (Non-sensitive parts)
+  POSTGRES_DB: "appointment_db"
+  POSTGRES_USER: "postgres"
+  POSTGRES_PORT: "5432"
+
+  # ASP.NET Core
+  ASPNETCORE_ENVIRONMENT: "Production"
+
+  # Email Configuration (Non-sensitive parts)
+  SMTP_HOST: "smtp.example.com"
+  SMTP_PORT: "587"
+  EMAIL_FROM: "noreply@example.com"
+
+  # CORS
+  CORS_ORIGINS: "http://localhost:3000"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: appointment-secrets
+  namespace: appointment-system
+type: Opaque
+stringData:
+  # Database Configuration (Sensitive parts)
+  POSTGRES_PASSWORD: "changeme"
+
+  # JWT Authentication
+  JWT_KEY: "your-secret-key-at-least-32-characters-long"
+  JWT_ISSUER: "AppointmentSystem"
+  JWT_AUDIENCE: "AppointmentSystem"
+
+  # Email Configuration (Sensitive parts)
+  SMTP_USER: "user@example.com"
+  SMTP_PASSWORD: "changeme"

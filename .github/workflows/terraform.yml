@@ -47,7 +47,7 @@ jobs:
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
 
       - name: Write kubeconfig
-        if: ${{ secrets.KUBECONFIG != '' }}
+             if: secrets.KUBECONFIG != ''
         run: |
           mkdir -p ~/.kube
           echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
@@ -126,7 +126,7 @@ jobs:
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
 
       - name: Write kubeconfig
-        if: ${{ secrets.KUBECONFIG != '' }}
+             if: secrets.KUBECONFIG != ''
         run: |
           mkdir -p ~/.kube
           echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
